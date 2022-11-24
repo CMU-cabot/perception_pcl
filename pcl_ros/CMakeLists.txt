@@ -40,7 +40,11 @@ include_directories(
 )
 
 ## Declare the pcl_ros_tf library
-add_library(pcl_ros_tf src/transforms.cpp)
+add_library(pcl_ros_tf SHARED src/transforms.cpp)
+target_include_directories(pcl_ros_tf PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
+)
 ament_target_dependencies(pcl_ros_tf
   ${dependencies}
 )
@@ -81,20 +85,46 @@ target_link_libraries(pcl_ros_tf ${PCL_LIBRARIES})
 #
 #
 ### Declare the pcl_ros_filters library
-#add_library(pcl_ros_filters
-#  src/pcl_ros/filters/extract_indices.cpp
-#  src/pcl_ros/filters/filter.cpp
-#  src/pcl_ros/filters/passthrough.cpp
-#  src/pcl_ros/filters/project_inliers.cpp
-#  src/pcl_ros/filters/radius_outlier_removal.cpp
-#  src/pcl_ros/filters/statistical_outlier_removal.cpp
-#  src/pcl_ros/filters/voxel_grid.cpp
-#  src/pcl_ros/filters/crop_box.cpp
-#)
-#target_link_libraries(pcl_ros_filters pcl_ros_tf ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-#add_dependencies(pcl_ros_filters ${PROJECT_NAME}_gencfg)
-#class_loader_hide_library_symbols(pcl_ros_filters)
-#
+add_library(pcl_ros_filters SHARED
+  src/pcl_ros/filters/crop_box.cpp
+  src/pcl_ros/filters/extract_indices.cpp
+  src/pcl_ros/filters/filter.cpp
+  src/pcl_ros/filters/passthrough.cpp
+  src/pcl_ros/filters/project_inliers.cpp
+  src/pcl_ros/filters/radius_outlier_removal.cpp
+  src/pcl_ros/filters/statistical_outlier_removal.cpp
+  src/pcl_ros/filters/voxel_grid.cpp
+)
+target_link_libraries(pcl_ros_filters
+  pcl_ros_tf
+  ${PCL_LIBRARIES}
+)
+ament_target_dependencies(pcl_ros_filters
+  rclcpp
+  rclcpp_components
+  EIGEN3
+  PCL
+)
+### Declare filter components and executables
+set(filter_name_pairs
+  crop_box|CropBox
+  extract_indices|ExtractIndices
+  passthrough|PassThrough
+  project_inliers|ProjectInliers
+  radius_outlier_removal|RadiusOutlierRemoval
+  statistical_outlier_removal|StatisticalOutlierRemoval
+  voxel_grid|VoxelGrid
+)
+foreach(pair IN LISTS filter_name_pairs)
+  string(REPLACE "|" ";" pair ${pair})
+  list(GET pair 0 filter_name)
+  list(GET pair 1 class_name)
+  rclcpp_components_register_node(pcl_ros_filters
+    PLUGIN "pcl_ros::${class_name}"
+    EXECUTABLE filter_${filter_name}_node
+  )
+endforeach()
+
 ### Declare the pcl_ros_segmentation library
 #add_library (pcl_ros_segmentation
 #  src/pcl_ros/segmentation/extract_clusters.cpp
@@ -173,7 +203,7 @@ install(
     pcl_ros_tf
 #    pcl_ros_io
 #    pcl_ros_features
-#    pcl_ros_filters
+    pcl_ros_filters
 #    pcl_ros_surface
 #    pcl_ros_segmentation
 #    pcd_to_pointcloud
@@ -193,6 +223,11 @@ install(DIRECTORY plugins samples
 
 ament_export_include_directories(include)
 ament_export_libraries(pcl_ros_tf)
+ament_export_libraries(pcl_ros_filters)
+
+# Export modern CMake targets
+ament_export_targets(export_pcl_ros HAS_LIBRARY_TARGET)
+
 ament_export_dependencies(${dependencies})
 ament_export_targets(export_pcl_ros HAS_LIBRARY_TARGET)
 ament_package()
