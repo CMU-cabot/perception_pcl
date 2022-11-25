@@ -43,9 +43,8 @@
 
  **/
 
-// ROS core
-#include <ros/ros.h>
-#include <pcl/io/io.h>
+// PCL
+#include <pcl/common/io.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -55,9 +54,14 @@
 #include <string>
 #include <thread>
 
-#include "pcl_ros/publisher.hpp"
+// ROS core
+#include <rclcpp/rclcpp.hpp>
+#include "rclcpp_components/register_node_macro.hpp"
+#include <sensor_msgs/msg/point_cloud2.hpp>
 
-class PCDGenerator
+namespace pcl_ros
+{
+class PCDPublisher : public rclcpp::Node
 {
 protected:
   std::string tf_frame_;
